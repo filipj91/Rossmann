@@ -28,4 +28,3 @@ Explore the interactive Streamlit app
 ## Apache Spark (Previous Implementation)
 
 The project was initially implemented using **Apache Spark** on **Databricks** to efficiently handle large datasets.
-# Rossmann
