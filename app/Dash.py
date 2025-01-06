@@ -11,8 +11,9 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from prophet import Prophet
+import os
 
-# Adding custom CSS for styling
+
 st.markdown("""
     <style>
     /* Main background */
@@ -65,18 +66,25 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Function to load data
+
 @st.cache_data
 def load_data():
 
-    train_path = "C:/Users/Oem/Rossmann/DataSet/train.csv"
-    store_path = "C:/Users/Oem/Rossmann/DataSet/store.csv"
+    train_path = "DataSet/train.csv"
+    store_path = "DataSet/store.csv"
 
 
+    if not os.path.exists(train_path):
+        raise FileNotFoundError(f"File not found: {train_path}")
+
+    if not os.path.exists(store_path):
+        raise FileNotFoundError(f"File not found: {store_path}")
+
+    # Load the data
     train = pd.read_csv(train_path, parse_dates=['Date'], low_memory=False, index_col='Date')
     store = pd.read_csv(store_path, low_memory=False)
 
-
+    # Data cleaning
     train = train[(train["Open"] != 0) & (train['Sales'] != 0)]
     store['CompetitionDistance'].fillna(store['CompetitionDistance'].median(), inplace=True)
     store.fillna(0, inplace=True)
@@ -86,16 +94,17 @@ def load_data():
     train['WeekOfYear'] = train.index.isocalendar().week
     train['SalePerCustomer'] = train['Sales'] / train['Customers']
     train.reset_index(inplace=True)
+
+
     train_store = pd.merge(train, store, how='inner', on='Store')
 
     return train_store, store
 
-# Main Streamlit application
 st.title("📊 Rossmann Sales Dashboard")
 
 data, store_info = load_data()
 
-# Sidebar: Data filtering
+
 st.sidebar.header("Data Filtering")
 store_id = st.sidebar.selectbox("Select Store:", data['Store'].unique())
 
@@ -117,7 +126,7 @@ col1.metric("Average Sales", f"{filtered_data['Sales'].mean():,.2f} PLN")
 col2.metric("Average Customers", f"{filtered_data['Customers'].mean():,.2f}")
 col3.metric("Promotions", f"{filtered_data['Promo'].sum()} days")
 
-# Sales over time chart (dynamic)
+
 st.subheader("📅 Sales Over Time")
 fig_sales = px.line(
     filtered_data,
@@ -126,9 +135,9 @@ fig_sales = px.line(
     title=f"Sales Over Time for Store {store_id}",
     labels={'Date': 'Date', 'Sales': 'Sales'},
     template='plotly_dark',
-    line_shape='spline'  # Smooth line
+    line_shape='spline'
 )
-fig_sales.update_traces(line=dict(color="#60A5FA"))  # Light blue line color
+fig_sales.update_traces(line=dict(color="#60A5FA"))
 st.plotly_chart(fig_sales, use_container_width=True)
 
 # Sales vs Customers correlation with animation
@@ -139,7 +148,7 @@ fig_corr = px.scatter(
     y='Sales',
     size='Sales',
     color='Promo',
-    animation_frame='Month',  # Animation based on month
+    animation_frame='Month',
     title="Correlation: Sales vs Customers",
     labels={'Customers': 'Customers', 'Sales': 'Sales', 'Promo': 'Promotions'},
     template='plotly_dark'
